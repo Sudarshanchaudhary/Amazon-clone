@@ -1,0 +1,190 @@
+import { deliveryOptions } from "./deliveryOptions.js";
+
+export let cart; 
+
+
+export function loadFromStorage() {
+    cart = JSON.parse(localStorage.getItem('cart'));
+    
+    if (!cart) {
+        cart = [{
+            productId: 'e43638ce-6aa0-4b85-b27f-e1d07eb678c6',
+            quantity: 2,
+            deliveryOptionsId: '1'
+        }, {
+            productId: '15b6fc6f-327a-4ec4-896f-486349e85a3d',
+            quantity: 1,
+            deliveryOptionId: '2'
+        }];
+    }
+}
+
+loadFromStorage();
+
+export function updateCartQuantity() { /*updates cart quantity count in cart basked in amazon.html page and 
+    updates checkout header count in checkout.html*/ 
+  let cartQuantity = 0;
+
+  cart.forEach((cartItem) => {
+    cartQuantity += cartItem.quantity;
+  });
+
+  const cartQuantityElement = document.querySelector('.js-cart-quantity');// cart quantity in amazon homepage
+
+  if (cartQuantityElement) {
+    cartQuantityElement.innerHTML = cartQuantity;
+  }
+
+  const checkoutCountElement = document.querySelector('.js-checkout-count'); //cart quantity in checkout page
+
+  if (checkoutCountElement) {
+    checkoutCountElement.innerHTML = `
+      Checkout (<a class="return-to-home-link"
+      href="amazon.html">${cartQuantity} items</a>)
+    `;
+  }
+
+  const orderCartQuantity = document.querySelector('.js-orders-cart-quantity'); //cart quantity in orders page
+
+  if(orderCartQuantity) {
+    orderCartQuantity.innerHTML = cartQuantity;
+  }
+
+  const trackCartQuantity = document.querySelector('.js-tracking-page-cart-quantity') // cart quantity in tracking page
+
+  if(trackCartQuantity) {
+    trackCartQuantity.innerHTML = cartQuantity;
+    }
+}
+
+function saveToStorage() {
+    localStorage.setItem('cart',JSON.stringify(cart));
+}   
+
+const timeoutIds = {};
+
+
+export function addToCart(productId) {
+    const addedToCart = document.querySelector(`.js-added-to-cart-${productId}`);
+
+    addedToCart.classList.add('add-success');
+
+    clearTimeout(timeoutIds[productId]);
+
+    timeoutIds[productId] = setTimeout(() => {
+        addedToCart.classList.remove('add-success');
+    }, 2000);
+    let matchingItem;
+    
+    cart.forEach((cartItem) => {
+        if (productId === cartItem.productId) {
+            matchingItem = cartItem;
+        }
+    });
+
+    const selectButtonValue = document.querySelector(`.js-quantity-selector-${productId}`).value;
+
+    if(matchingItem) {
+        matchingItem.quantity += Number(selectButtonValue); //default value = 1
+    } else {
+    cart.push({
+        productId, //productId = productId
+        quantity: Number(selectButtonValue),
+        deliveryOptionId: '1'
+    });
+        
+        }
+
+        saveToStorage();
+}
+
+export function removeFromCart(productId) {
+
+    const newCart = [];
+
+    cart.forEach((cartItem) => {
+        if (cartItem.productId !== productId) {
+            newCart.push(cartItem);
+        }
+    });
+    
+    cart = newCart;
+
+    saveToStorage();
+}
+
+export function updateQuantity(productId, newQuantity) {
+    cart.forEach((cartItem) => {
+        if (cartItem.productId === productId) {
+            cartItem.quantity = newQuantity
+        }
+    });
+
+    saveToStorage();
+}
+
+export function updateDeliveryOption(productId, deliveryOptionId) {
+    let matchingItem;
+
+    cart.forEach((cartItem) => {
+        if (productId === cartItem.productId) {
+            matchingItem = cartItem;
+        }
+    });
+
+    if (!matchingItem) {
+        return;
+    }
+    matchingItem.deliveryOptionId = deliveryOptionId;
+
+    saveToStorage();
+}
+
+export function loadCart(fun) {
+  const xhr = new XMLHttpRequest();
+
+  xhr.addEventListener('load', () => {
+    fun();
+  });
+
+  xhr.open('GET', 'https://supersimplebackend.dev/cart');
+  xhr.send();
+}
+
+export async function loadCartFetch() {
+  const response = await fetch('https://supersimplebackend.dev/cart');
+  const text = await response.text();
+  console.log(text);
+  return text;
+}
+
+
+export function addToCartAgain(productId) {
+   
+    let matchingItem;
+    
+    cart.forEach((cartItem) => {
+        if (productId === cartItem.productId) {
+            matchingItem = cartItem;
+        }
+    });
+
+    if(matchingItem) {
+        matchingItem.quantity += 1;
+    } else {
+    cart.push({
+        productId, //productId = productId
+        quantity: 1,
+        deliveryOptionId: '1'
+    });
+        
+        }
+
+        saveToStorage();
+}
+
+export function clearCart() {
+  cart = [];
+  saveToStorage();
+  updateCartQuantity();
+}
